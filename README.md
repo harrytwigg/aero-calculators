@@ -1,6 +1,6 @@
 # Aero Calculators
 
-Calculators for the SESA2025 and FEEG2005 modules at the University of Southampton. Includes cross-section, beams, and pin-jointed truss analysis amoung other things.
+Calculators for the SESA2025 and FEEG2005 modules at the University of Southampton. Includes cross-section, beams, and pin-jointed truss analysis among other things.
 
 I coded these myself, example how to use functions based of lecture questions can be seen in the individual files.
 
