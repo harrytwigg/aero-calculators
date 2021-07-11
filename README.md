@@ -59,39 +59,47 @@ Calculate various properties such as bending stress and moments of a beam
 Supports custom point and distributed loads through the use of heaviside functions, bending stress and moments can then be graphed.
 
 ```{python}
+def bending_shear_force_lecture_1():
+    """Example shear force from lecture 1"""
+    beam = Beam(1, 24.2 * 10**(-6))
+    beam.add_distributed_load(10000, 0, 1)
+    beam.add_point_load(5000, 0.5)
+    print("R_a", beam.get_R_a())
+    print("M_a", beam.get_M_a())
 
-# Declare the beam and add distributed and point loads
-beam = Beam(1, 24.2 * 10**(-6))
-beam.add_distributed_load(10000, 0, 1)
-beam.add_point_load(5000, 0.5)
+    bending_stress = beam.bending_stress(0, -0.01, -0.1, 6.6 * 10 **-6, 7.2 * 10 **-6, x_value=0)
+    print("bending_stress", bending_stress)
 
-print("R_a", beam.get_R_a())
-print("M_a", beam.get_M_a())
+    bending_moment = beam.bending_moment()
+    shear_force = beam.shear_force()
+    x_points = []
+    bending_moment_points = []
+    shear_force_points = []
 
-bending_stress = beam.bending_stress(0, -0.01, -0.1, 6.6 * 10 **-6, 7.2 * 10 **-6, x_value=0)
-print("bending_stress", bending_stress)
+    # Enables floating point increments in loops
+    def drange(start, stop, step):
+        while start < stop:
+            yield start
+            start += step
 
-bending_moment = beam.bending_moment()
-shear_force = beam.shear_force()
-x_points = []
-bending_moment_points = []
-shear_force_points = []
+    for i in drange(0, 1, 0.01):
+        x_points.append(i)
+        bending_moment_points.append(bending_moment.subs(x, i))
+        shear_force_points.append(shear_force.subs(x, i))
 
-# Enables floating point increments in loops
-def drange(start, stop, step):
-    while start < stop:
-        yield start
-        start += step
+    plt.plot(x_points, bending_moment_points)
+    plt.plot(x_points, shear_force_points)
 
-for i in drange(0, 1, 0.01):
-    x_points.append(i)
-    bending_moment_points.append(bending_moment.subs(x, i))
-    shear_force_points.append(shear_force.subs(x, i))
+    plt.legend(["Bending Moment", "Shear Force"])
+    plt.show()
+```
 
-plt.plot(x_points, bending_moment_points)
-plt.plot(x_points, shear_force_points)
-plt.legend(["Bending Moment", "Shear Force"])
-plt.show()
+Example Output
+
+```{console}
+R_a 15000
+M_a -7500.0
+bending_stress -50514460.5116797
 ```
 
 <img src="beam_analysis.png" />
@@ -105,6 +113,71 @@ Force can be appleid at any of the joints
 Generates equations using the method of joints and resolves them automatically
 
 Generates truss from an input set of points data and can sketch the truss
+
+```{python}
+def virtual_forces_lecture_16():
+    """Example question lecture 16, uses a virtual external force"""
+
+    points = [("B", 0, 2, "W"), ("C", 2, 2), ("D", 4, 2),
+              ("F", 0, 0, "W"), ("G", 2, 0)]
+    members = [("B", "C"), ("C", "D"), ("D", "G"),
+               ("F", "G"), ("F", "C"), ("C", "G")]
+
+    A = 1000 * 10**-6
+    E = 200 * 10**9
+
+    N = CoordSys3D('N')
+    real_force = - 10000 * N.j
+    real_point = "D"
+
+    virtual_force = - 1 * N.j
+    virtual_point = "G"
+
+    print("""
+=====================
+    Real Truss
+=====================
+    """)
+
+    # Apply analysis on real truss in same way as before
+    real_truss = Truss(points, members)
+    real_truss.add_force_at_point(real_point, real_force)
+    real_truss.print_all_eqns()
+    real_truss.solve_equation_system()
+    real_truss.print_resolved_forces()
+    real_elements, headers = real_truss.find_truss_elements(A, E)
+    real_truss.plot()
+    print("""
+Real Truss Elements:
+    """)
+
+    print(tabulate(real_elements, headers=headers, disable_numparse=True))
+
+    print("""
+=====================
+    Virtual Truss
+=====================
+    """)
+
+    # Make new truss and apply virtual force at point G and solve
+    virtual_truss = Truss(points, members)
+    virtual_truss.add_force_at_point(virtual_point, virtual_force)
+    virtual_truss.print_all_eqns()
+    virtual_truss.solve_equation_system()
+    virtual_truss.print_resolved_forces()
+    virtual_elements = virtual_truss.find_truss_elements(A, E)[0]
+
+    print("""
+Virtual Truss Elements:
+    """)
+
+    print(tabulate(virtual_elements, headers=headers, disable_numparse=True))
+
+    u = Truss.displacement_arbitrary_point(
+        real_elements, virtual_elements, virtual_force)
+    print("")
+    print("Displacement u at the point G is", u, "as float", u.evalf())
+```
 
 <img src="pin_truss.png" />
 
